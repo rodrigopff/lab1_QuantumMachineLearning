@@ -1,4 +1,6 @@
+# Segunda versao dos testes para regressao linear com qiskit
 # importing necessary packages
+
 import qiskit
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import Aer, execute
@@ -10,11 +12,7 @@ from scipy.optimize import minimize
 
 from qiskit.visualization import array_to_latex
 
-#x = np.arange(0,8,1)    # define some vectors x and y
-#y = x
-#y = 2*x ## fazendo diferente aqui criiando u reta y=2x no luhar de y=x
-
-
+####### PRIMEITO BLOCO ############
 np.random.seed(42)  # to make this code example reproducible
 m = 8  # number of instances
 #X = 2 * np.random.rand(m, 1)  # column vector
@@ -62,9 +60,13 @@ print(vec)
 circ.initialize(vec, range(nqubits+1))
 circ.h(nqubits)                    # apply hadamard to bottom qubit
 
-circ.draw('mpl')                        # draw the circuit       
+
+circ.draw('mpl') 
+plt.show()                       # draw the circuit
+############ FIM PRIMEITO BLOCO ############
 
 
+####### SEGUNDO BLOCO ############
 
 #Creates a quantum circuit to calculate the inner product between two normalised vectors
 
@@ -80,25 +82,24 @@ def inner_prod(vec1, vec2):
     circ.h(nqubits)
 
     backend = Aer.get_backend('statevector_simulator')
+    #job = execute(circ, backend, backend_options = {"zero_threshold": 1e-20})
     job = execute(circ, backend)
 
     result = job.result()
-    res = result.get_statevector(circ)
-    o = np.real(res)
-    
-    #print(o)
-    m_sum = 0            
-    for l in range(N):
-        m_sum += o[l]**2         
-        
-    return 2*m_sum-1    
+    o = np.real(result.get_statevector(circ))
 
+    m_sum = 0
+    for l in range(N):
+        m_sum += o[l]**2
+        
+    return 2*m_sum-1
 
 np.random.seed(42)  # to make this code example reproducible
 m = 8  # number of instances
 #X = 2 * np.random.rand(m, 1)  # column vector
 X = 2 * np.random.rand(m, 2)  # column vector
-#print(X)
+print(X)
+print(X.T)
 #print(X.shape)
 
 
@@ -114,6 +115,11 @@ y =  4 + (X_ComParametrosMultiplicados) + np.random.randn(m, 1)
 y = y.T
 x = X_ComParametrosMultiplicados.T
 
+
+
+#print(np.concatenate((X_ComParametrosMultiplicados,y)))
+
+#N = len(X)              
 N = m              
 nqubits = math.ceil(np.log2(N))    # compute how many qubits needed to encode either x or y
 
@@ -122,102 +128,104 @@ ynorm = np.linalg.norm(y)
 x = x/xnorm
 y = y/ynorm
 
- 
-#x = np.arange(0,8,1)
-
-#y = x
-#y = 2*x
-#print(y)
-
-#N = len(x)
-#nqubits = math.ceil(np.log2(N))
-#xnorm = np.linalg.norm(x)
-#ynorm = np.linalg.norm(y)
-#x = x/xnorm
-#y = y/ynorm
-#print("######")
-#print(ynorm)
-#print(xnorm)
-#print("######")
-
 print("x: ", x)
 print()
 print("y: ", y)
 print()
 print("The inner product of x and y equals: ", inner_prod(x[0],y[0]))
-#draw using latex
-#inner_prod(x,y)[2].draw('latex')
+
+########## FIM SEGUNDO BLOCO ########################
+
+
+########### TERCEIRO BLOCO ##########################
 
 #Implements the entire cost function by feeding the ansatz to the quantum circuit which computes inner products
 
-def calculate_cost_function(parameters):
+def calculate_cost_function(a,b):
 
-    a, b = parameters
+    a = a.T    
+    b = b
     
-    ansatz = a*x + b                        # compute ansatz
+    ansatz = x @ a + b                        # compute ansatz
     ansatzNorm = np.linalg.norm(ansatz)     # normalise ansatz
     ansatz = ansatz/ansatzNorm
-    
-    y_ansatz = ansatzNorm/ynorm * inner_prod(y,ansatz)     # use quantum circuit to test ansatz
+    #print(ansatz[:, 0])
+    #print(y[:, 0])
+
+  
+    y_ansatz = ansatzNorm/ynorm * inner_prod(y[:, 0],ansatz)     # use quantum circuit to test ansatz
                                                            # note the normalisation factors
     return (1-y_ansatz)**2
 
-x = np.arange(0,8,1)
-y = 2*x
+np.random.seed(42)  # to make this code example reproducible
+m = 8  # number of instances
+#X = 2 * np.random.rand(m, 1)  # column vector
+X = 2 * np.random.rand(m, 2)  # column vector
+#print(X)
+#print(X.T)
+#print(X.shape)
 
+
+# gera o vetor coluna com os parametros que será multiplicados pelos valores de cada caracteristica 
+theta_row_vector = np.array([[3,5]])
+theta_col_vector = theta_row_vector.T 
+
+# Vetor coluna com o calculo de todas as instancias multiplicadas pelos parametros theta
+X_ComParametrosMultiplicados = (X @ theta_col_vector) 
+
+y =  4 + (X_ComParametrosMultiplicados) + np.random.randn(m, 1) 
+
+#y = y.T
+x = X
+y = y
 N = len(x)
 nqubits = math.ceil(np.log2(N))
 ynorm = np.linalg.norm(y)
 y = y/ynorm
 
-a = 1.0
+#a = np.array([[1,1]]).T
+a = np.array([1,1])
 b = 1.0
-print("Cost function for a =", a, "and b =", b, "equals:", calculate_cost_function([a,b]))
+print("Cost function for a =", a, "and b =", b, "equals:", calculate_cost_function(a,b))
+ 
+########### FIM TERCEIRO BLOCO ########################## 
 
-#first set up the data sets x and y
 
-x = np.arange(0,8,1)
-y = 2*x   # + [random.uniform(-1,1) for p in range(8)]    # can add noise here
+############### QUARTO BLOCO ###############################
+
+np.random.seed(42)  # to make this code example reproducible
+m = 8 # number of instances
+#X = 2 * np.random.rand(m, 1)  # column vector
+X = 2 * np.random.rand(m, 2)  # column vector
+#print(X)
+#print(X.T)
+#print(X.shape)
+
+
+# gera o vetor coluna com os parametros que será multiplicados pelos valores de cada caracteristica 
+theta_row_vector = np.array([[3,5]])
+theta_col_vector = theta_row_vector.T 
+
+# Vetor coluna com o calculo de todas as instancias multiplicadas pelos parametros theta
+X_ComParametrosMultiplicados = (X @ theta_col_vector) 
+
+y =  4 + (X_ComParametrosMultiplicados) + np.random.randn(m, 1) 
+
+#y = y.T
+x = X
+y = y
 N = len(x)
 nqubits = math.ceil(np.log2(N))
-       
-ynorm = np.linalg.norm(y)      # normalise the y data set
+ynorm = np.linalg.norm(y)
 y = y/ynorm
 
+#a = np.array([[1,1]]).T
+b = 1
+
 x0 = [0.5,0.5]                 # initial guess for a and b
+#x0 = np.array([[1,1]])
 
 #now use different classical optimisers to see which one works best
 
-out = minimize(calculate_cost_function, x0=x0, method="BFGS", options={'maxiter':200}, tol=1e-6)
-out1 = minimize(calculate_cost_function, x0=x0, method="COBYLA", options={'maxiter':200}, tol=1e-6)
-out2 = minimize(calculate_cost_function, x0=x0, method="Nelder-Mead", options={'maxiter':200}, tol=1e-6)
-out3 = minimize(calculate_cost_function, x0=x0, method="CG", options={'maxiter':200}, tol=1e-6)
-out4 = minimize(calculate_cost_function, x0=x0, method="trust-constr", options={'maxiter':200}, tol=1e-6)
-
-out_a1 = out1['x'][0]
-out_b1 = out1['x'][1]
-
-out_a = out['x'][0]
-out_b = out['x'][1]
-
-out_a2 = out2['x'][0]
-out_b2 = out2['x'][1]
-
-out_a3 = out3['x'][0]
-out_b3 = out3['x'][1]
-
-out_a4 = out4['x'][0]
-out_b4 = out4['x'][1]
-
-plt.scatter(x,y*ynorm)
-xfit = np.linspace(min(x), max(x), 100)
-plt.plot(xfit, out_a*xfit+out_b, label='BFGS')
-plt.plot(xfit, out_a1*xfit+out_b1, label='COBYLA')
-plt.plot(xfit, out_a2*xfit+out_b2, label='Nelder-Mead')
-plt.plot(xfit, out_a3*xfit+out_b3, label='CG')
-plt.plot(xfit, out_a4*xfit+out_b4, label='trust-constr')
-plt.legend()
-plt.title("y = x")
-plt.xlabel("x")
-plt.ylabel("y")
-plt.show()
+out = minimize(calculate_cost_function, x0=x0, args=(b,), method="BFGS", options={'maxiter':200}, tol=1e-6)
+print(out) 
